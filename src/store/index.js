@@ -21,8 +21,8 @@ var store = new vuex.Store({//store对象
 		// 选择添加的点位
 		chooseImg(state,osrc){
 			state.oimg = osrc.osrc
-			state.oid = osrc.id
-			console.log(osrc)
+			state.id = osrc.oid
+			console.log(state.oid)
 			// console.log($event)
 		}, 
 	

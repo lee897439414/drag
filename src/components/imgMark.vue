@@ -2,7 +2,7 @@
 	<div>
 		<div class="imgbox" ref="mainbox" @click="addMark" @mousedown="mousedown($event)">
 			<img id="oimg" :src="'http://app.oneapptech.cn'+imgData.image" alt="" ref="himg">
-			<img :src="'http://app.oneapptech.cn'+item.image" :width="size" :typeid="item.onegoodscategoryid" :height="size"
+			<img :src="'http://app.oneapptech.cn'+item.image" :width="size" :typeid="item.onegoodscategoryid" :iconid="item.iconid" :pointid="item.pointid" :height="size"
 			 :style="{top:item.posy*h+'px',left:item.posx*w+'px'}" class="iconPOsition" v-for="(item,index) in imgData.icon">
 			<!-- <img id="oimg" :src="'http://app.oneapptech.cn'+imgData.image" alt="" @mousewheel="h_moseeWheel($event)"> -->
 		</div>
@@ -104,15 +104,21 @@
 			mousedown(e) {
 				let event = e
 				var el = event.target
+				let typeId = el.getAttribute('typeid') //获取点击图标的typeid
+				let iconid = el.getAttribute('iconid')//获取点击图标的pointid
 				el.style.zIndex = this.Zindex++
-				this.wmove(el)
+				this.wmove(el,typeId,iconid)
 			},
 			// 拖动鼠标
-			wmove(el) {
+			wmove(el,typeId,iconid) {
+				let ox = null
+				let oy = null
+				let id = typeId
+				let pid = iconid
 				el.onmousemove = (e) => {
 					let x = e.clientX - el.offsetLeft
 					let y = e.clientY - el.offsetTop
-					this.operate = 1 //拖动模式
+					this.operate = 2 //拖动模式
 					document.onmousemove = (e) => {
 						// 主区域距左边的距离
 						let wideht = document.body.offsetWidth
@@ -131,6 +137,8 @@
 							el.style.left = this.$refs.mainbox.offsetWidth + mainx + 'px'
 							return false
 						}
+						ox = (e.clientX - x)/this.h
+						oy = (e.clientY - y)/this.w
 						el.style.left = e.clientX - x + 'px'
 						el.style.top = e.clientY - y + 'px'
 					}
@@ -140,6 +148,8 @@
 				this.$refs.mainbox.onmouseup = () => {
 					// console.log('鼠标送开了')
 					el.onmousemove = null
+					this.operate == 2 ? this.changePiont(ox,oy,id,pid) : '' // 2为移动模式执行
+					
 				}
 				document.onmouseup = () => {
 					document.onmousemove = null
@@ -150,7 +160,7 @@
 
 				let src = this.$store.state.oimg
 				let id = this.$store.state.id
-				console.log()
+				
 				if (e.target.className == 'iconPOsition') {
 					// e.target.className = 'iconPOsition active'
 					return false
@@ -160,6 +170,7 @@
 					this.closeToast() //关闭提示窗
 					return false
 				}
+				let times = this.HEgetTime() //portid
 				let el = document.createElement('img') //创建img元素
 				let mainx = this.$refs.mainbox.getBoundingClientRect().left //容器距左边的距离
 				el.setAttribute('src', src)
@@ -169,7 +180,11 @@
 				el.style.top = e.clientY + 'px' //标注点y轴
 				el.className = 'iconPOsition'
 				e.currentTarget.appendChild(el)
-
+				this.operate = 1 //1为新增模式
+				let ox = (e.clientX - mainx)/this.h //x轴
+				let oy = e.clientY/this.w // y轴
+				let pid = this.HEgetTime() // 图标id
+				this.changePiont(ox,oy,id,pid)
 			},
 			// 关闭提示弹窗
 			closeToast() {
@@ -178,23 +193,31 @@
 				}, 2000)
 			},
 			// 修改点位坐标
-			changePiont(){
-				this.$http.post('http://app.oneapptech.cn/index.php?m=Api&c=project&a=projectIconCategory', {
+			changePiont(ox,oy,id,pid){
+				this.$http.post('http://app.oneapptech.cn/index.php?m=Api&c=project&a=changeIconProject', {
 					'userId': 355,
 					'projectId': this.$route.query.id,
 					'floorId': this.ofId,
 					'pointIconSize':'1', //修改 点位图标尺寸。1=小号；2=中号；3=大号
 					'operate':this.operate ,//操作模式。1=新增；2=移动；3=删除
-					'onegoodscategoryid':this.$store.state.id
+					'typeId':id,
+					'posx':ox,
+					'posy':oy,
+					'pointId':pid,
+					'portnum':0
 				}, {
 					emulateJSON: true
 				}, ).then(function(res) {
-					let result = res.body.result
-					console.log('result')
-					console.log(result)
+					console.log(res.body.msg)
 				}, function(res) {
 					alert('分类数据异常!')
 				});
+			},
+			// 生成时间戳
+			HEgetTime(){
+				let time = new Date()
+				let gettimes = time.getTime()
+				return 'wp' + gettimes
 			}
 		},
 
